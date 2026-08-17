@@ -1,0 +1,36 @@
+{
+    "version": 1,
+    "name": "Result",
+    "maps": [
+        {
+            "name": "Result",
+            "id": "c2901c07-48aa-47f7-86d1-524c11e7f71e",
+            "actions": [
+                {
+                    "name": "Back",
+                    "type": "Button",
+                    "id": "c0ab8d32-3a75-4421-8c35-cf870da90983",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "01704727-fb8a-4ec3-9546-7263cfb23e54",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Back",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

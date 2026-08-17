@@ -1,0 +1,36 @@
+{
+    "version": 1,
+    "name": "Title",
+    "maps": [
+        {
+            "name": "Title",
+            "id": "ca3b368b-d073-4292-8b45-03f7aff65c72",
+            "actions": [
+                {
+                    "name": "Start",
+                    "type": "Button",
+                    "id": "d2cd3c47-abdc-4022-9393-5607e56baad9",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "67ffe78d-fa48-4c2e-b175-23b2c7af9652",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Start",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

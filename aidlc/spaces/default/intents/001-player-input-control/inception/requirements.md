@@ -42,9 +42,8 @@
     `Assets/Editor/` 配下に追加し、シーンを開かずに合否が出ることを確認する。（未実行）
   - 情報源: 推論。ADR-002 の層分離を検証可能にするため。
   - 備考: asmdef 不採用（ADR-002）のため、テストは predefined assembly
-    `Assembly-CSharp-Editor` に置く。Test Framework がこれに対応していることは
-    `InternalsVisibleTo("Assembly-CSharp-Editor-testable")` から確認済みだが、
-    Editor 上での実行は未検証（Q10）。
+    `Assembly-CSharp-Editor` に置く。Editor 上で 13 ケースが認識・実行され、
+    この経路が成立することを確認済み（Q10、解決）。
 
 - **FR6**: 依存オブジェクトの生成と結線は、シーン内に 1 つ置く Composition Root
   （`PlaySceneRoot`）でのみ行う。`static` なシングルトンおよびグローバル可変状態を用いない。
@@ -122,10 +121,14 @@
 
 - **NFR3**（層の分離）: Core 層のコードは Input System および MonoBehaviour 派生型に依存しない。
   asmdef を用いないため（ADR-002）、強制はコンパイラではなく規約とレビューで行う。
-  - 閾値: `Assets/Scripts/Play/Core/` 配下のファイルに `UnityEngine.InputSystem` の `using`、
-    `MonoBehaviour`、`ScriptableObject`、`GameObject`、`Transform` が出現しない。出現件数 0。
-  - 検証: `grep -rnE "UnityEngine\.InputSystem|MonoBehaviour|ScriptableObject|GameObject|Transform" Assets/Scripts/Play/Core/`
-    の結果が空であることを確認する。（未実行）
+  - 閾値: `Assets/Scripts/Core/` と `Assets/Scripts/Play/Core/` 配下のファイルに
+    `UnityEngine.InputSystem` の `using`、`MonoBehaviour`、`ScriptableObject`、
+    `GameObject`、`Transform` が出現しない。出現件数 0（コメント行を除く）。
+  - 検証: `grep -rnE "UnityEngine\.InputSystem|MonoBehaviour|ScriptableObject|GameObject|Transform" Assets/Scripts/Core/ Assets/Scripts/Play/Core/`
+    の結果が空であることを確認する。→ **`PASS`（2026-08-17）**
+  - 備考: 設定値の受け渡しでは Core 層に `IGameStateSettings` インターフェースを置き、
+    ScriptableObject である `GameStateSettings` がこれを実装する。
+    `IPlayerInput` と同じ、依存の向きを一方向に保つための境界である。
 
 ## 制約
 
@@ -133,10 +136,16 @@
   根拠: `ProjectSettings/ProjectVersion.txt`、`Packages/manifest.json`。
 - DIContainer（VContainer、Zenject 等）は導入しない。
 - 非同期処理は UniTask `2.5.11` を用いる（ADR-008、利用者判断 2026-08-17）。
-  `Packages/manifest.json` に Git URL で追記済み。Editor による解決は未実施（Q19）。
-- イベント駆動には R3 `1.3.1` を用いる（ADR-009、利用者判断 2026-08-17）。
-  R3 本体は NuGet 配布のため、NuGetForUnity `4.5.0` の導入が前提となる（Q20）。
-  UniRx は用いない。
+  `Packages/manifest.json` に Git URL で追記し、解決済み（Q19、解決）。
+- イベント駆動には R3 `1.3.1` を用いる（ADR-009、利用者判断 2026-08-17）。UniRx は用いない。
+  R3 本体は NuGet 配布のため NuGetForUnity `4.5.0` の導入が前提となる。
+  `Assets/packages.config` に以下 5 つを明示列挙して復元済み（Q20、解決）。
+  NuGetForUnity の Restore は推移的依存を解決しないため、列挙が必須である。
+  - `R3 1.3.1`
+  - `Microsoft.Bcl.TimeProvider 8.0.0`
+  - `Microsoft.Bcl.AsyncInterfaces 6.0.0`
+  - `System.Threading.Channels 8.0.0`
+  - `System.Runtime.CompilerServices.Unsafe 6.0.0`
 - `Assets/UnityChan/` は同梱パッケージ由来として変更しない。
   根拠: `aidlc/spaces/default/memory/project.md`。
 - `Assets/Prefabs/Character.prefab` は `SD_unitychan_humanoid`
@@ -177,12 +186,12 @@
 | Q2 | 事実 / 是正済み | `Main.inputactions.meta` の `generateWrapperCode` が `0` だった。`1` へ変更済み。`Assets/Scripts/Main.cs` が生成され、グローバル名前空間の `public partial class @Main`（`IInputActionCollection2`、`IDisposable`）に `Play.Move` / `Play.Dash` のアクセサが存在することを確認済み。 | 解決 |
 | Q3 | 事実 | `Character.prefab` に追加コンポーネントが 1 つも無い（`m_AddedComponents: []`）。移動には `CharacterController` または `Rigidbody` + `Collider` が、敵・コインとの接触判定には `Collider` が必要。 | 未解決 |
 | Q4 | 未決 | 移動方式を `CharacterController.Move` と `Rigidbody` のどちらにするか。ADR-005 で `CharacterController` を暫定採用しているが、敵との衝突表現次第で再検討の余地がある。 | 未解決 |
-| Q5 | 未確認 | SD Unity-chan の Animator Controller が持つパラメータ名（歩行・走行のブレンドに使う float 名）を確認していない。`CharacterView` のアニメーション反映はこれに依存する。 | 未解決 |
+| Q5 | 事実 / 解決 | 同梱の `SD_unitychan_motion_humanoid.controller` は `Next` / `Back` の Trigger のみで `Speed` float を持たない。humanoid FBX（guid `f320efa63ce12874a9ad50add869c0b5`、`animationType: 3`）から `Standing@loop`(2.0s) / `Walking@loop`(1.2s) / `Running@loop`(0.8s) を `AnimationClip` としてロード可能で、3 つとも `isLooping=True` / `humanMotion=True` であることを確認（2026-08-17）。新規 Animator Controller を作成する（Step 5-2）。同名クリップを持つ Generic 版 FBX（guid `b6475d894388e0f4bbe9ba904c073a2e`）と取り違えないこと。 | 解決 |
 | Q6 | 未決 | 歩行速度・走行速度の具体値。ゲーム仕様書に既定値の記載がない（制限時間 2 分、HP 100 等は既定値が示されている）。 | 未解決 |
 | Q7 | 決定済み | Title / Play / Result のシーン跨ぎ状態の受け渡し方式。Root シーン + Additive ロードを正式採用（ADR-006、2026-08-17）。 | 解決 |
 | Q8 | 事実 | `ProjectSettings/EditorBuildSettings.asset` が実在しない `Assets/Scenes/SampleScene.unity` を参照している（既知課題、`memory/project.md`）。ADR-006 の採用により、Root シーンの新規作成と有効シーンの全面的な登録し直しが必要になった。本 intent の PlayMode 検証前に是正が必要。 | 未解決 |
 | Q9 | 仮定 | フィールドは平面であり、移動は XZ 平面上の 2 自由度で足りる（ジャンプ・段差なし）。 | 要合意 |
-| Q10 | 未確認 | asmdef 不採用（ADR-002）のもとで、`Assets/Editor/` 配下に置いた EditMode テストが Test Runner に認識され実行できること。パッケージ側の `InternalsVisibleTo("Assembly-CSharp-Editor-testable")` から対応していると判断したが、Editor 上で未検証。 | 未解決 |
+| Q10 | 事実 / 解決 | `Assets/Editor/` に置いた EditMode テストは predefined assembly `Assembly-CSharp-Editor` で認識され、`TestRunnerApi` により 13 ケースすべてが実行・通過した（2026-08-17）。ADR-002 の asmdef 不採用は成立する。 | 解決 |
 | Q11 | 決定済み | Root シーンの `GameRoot` から各シーンの `CompositionRoot` へ依存を渡す手段。ロード直後に `Scene.GetRootGameObjects()` から `CompositionRoot`（abstract）を取得し、明示的に `Initialize(GameState)` を呼ぶ（ADR-007、2026-08-17）。 | 解決 |
 | Q12 | 決定済み | Camera / AudioListener は Root シーンに集約する。各シーンは単独で完結しないため、シーンごとに置く利点がない（ADR-006、ADR-007）。EventSystem は uGUI の対話操作を使わないため配置しない（2026-08-17、ADR-010 追記）。 | 解決 |
 | Q13 | 未決 | Root シーンのファイル名と配置先（`Assets/Scenes/Root.unity` 等）、および Build Settings への登録順。 | 未解決 |
@@ -192,7 +201,7 @@
 | Q17 | 決定済み | シーンの終了通知は R3 の `Observable<SceneResult>`（`Subject` 由来）で行い、`GameRoot` が購読して遷移する（ADR-009、2026-08-17）。 | 解決 |
 | Q18 | 決定済み | 入力アセットはシーンごとに分割し、各シーンの Composition Root が生成して `OnDestroy` で破棄する（ADR-010、2026-08-17）。 | 解決 |
 | Q19 | 事実 / 解決 | UniTask 2.5.11 は Unity Editor により解決済み。`Packages/packages-lock.json` に `source: git`、`hash: 2e993ff1...` として記録され、`Library/PackageCache/com.cysharp.unitask@d648f5692cf2/` に展開されていることを確認（2026-08-17）。 | 解決 |
-| Q20 | 未確認 | R3.Unity `1.3.1` と NuGetForUnity `4.5.0` を `Packages/manifest.json` に、R3 本体 `1.3.1` を `Assets/packages.config` に追記済み（2026-08-17）。Unity Editor 起動時に UPM の解決と NuGetForUnity の自動復元が走る想定だが、いずれも未実行。復元後に `R3` 名前空間が解決できることの確認が必要。 | 未解決 |
+| Q20 | 事実 / 解決 | R3 の依存は `R3 1.3.1` → `Microsoft.Bcl.TimeProvider 8.0.0` → `Microsoft.Bcl.AsyncInterfaces 6.0.0` / `System.Threading.Channels 8.0.0` / `System.Runtime.CompilerServices.Unsafe 6.0.0` の計 5 つ。すべて `Assets/packages.config` に記載し復元済み。`R3` / `R3.Unity` / `Assembly-CSharp` のロード成功を確認（2026-08-17）。NuGetForUnity の Restore は推移的依存を解決しないため、必要なものを明示列挙する必要がある。 | 解決 |
 | Q21 | 決定済み | `SceneResult` は `Normal` / `GameClear` / `GameFailure` の 3 値（2026-08-17）。`GameClear` と `GameFailure` は Play → Result の遷移、`Normal` はそれ以外の遷移で用いる。`GameState` / `GameStateSettings` のフィールド構成は ADR-011 に確定。 | 解決 |
 | Q22 | 決定済み | `GameRoot` の購読解除は `UnloadSceneAsync` の前に行う（2026-08-17）。アンロード中の発火による二重遷移を防ぐため。 | 解決 |
 | Q23 | 決定済み | `Assets/InputSystem_Actions.inputactions`（GUID `052faaac586de48259a63d0c4782560b`）は削除する。`ProjectSettings/EditorBuildSettings.asset` の `m_configObjects` に `com.unity.input.settings.actions` として登録されており Project-wide Actions として全シーンで暗黙に有効になるため、ADR-010 の趣旨と衝突する。uGUI の対話操作を使わないため `UI` マップを残す理由もない（利用者判断、2026-08-17）。登録解除と Root シーンへの EventSystem 非配置を伴う（ADR-010 追記）。 | 解決 |

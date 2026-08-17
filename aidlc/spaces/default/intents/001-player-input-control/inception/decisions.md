@@ -691,6 +691,14 @@ ADR-007 で `GameState` を `GameRoot` が保持し `Reset()` で初期化する
 
 ### Decision
 
+実装時の改訂（2026-08-17）: 当初 `GameState.Reset(GameStateSettings)` と記述していたが、
+`GameStateSettings` は ScriptableObject であり Unity 層に属するため、
+このままでは Core 層が Unity 層に依存してしまい NFR3 に反する。
+Core 層に `IGameStateSettings` インターフェースを置き、
+`GameStateSettings` がこれを実装する形に変更した。
+`IPlayerInput`（ADR-004）と同じ、依存の向きを一方向に保つための境界である。
+`Reset(IGameStateSettings)` という単一引数の形と、設定を 1 つのまとまりとして扱う意図は変わらない。
+
 **1. 設定値はすべて `GameStateSettings`（ScriptableObject）で管理する**（旧 Q25）。
 
 ```csharp

@@ -5,8 +5,8 @@
 | 項目 | 値 |
 |---|---|
 | Intent ID | `INT-001` |
-| 実行済み stage | `ideation`（設計方針の検討）、`inception`（要求・アーキテクチャ決定） |
-| 未実行 stage | `construction`、`operation` |
+| 実行済み stage | `ideation`（設計方針の検討）、`inception`（要求・アーキテクチャ決定）、`construction`（Step 1 〜 4 まで実施、Step 5 以降は未着手） |
+| 未実行 stage | `construction` の Step 5 以降、`operation` |
 | 承認状況 | 未承認。すべての成果物は `NOT-READY`。 |
 | 記録日 | 2026-08-17 |
 
