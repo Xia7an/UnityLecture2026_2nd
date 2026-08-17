@@ -19,7 +19,7 @@ namespace Game.Title
 
         private void Awake() => enabled = false;
 
-        public override void Initialize(GameState gameState)
+        public override void Initialize(GameState gameState, IGameStateSettings settings)
         {
             input = new TitleInput();
             input.Title.Enable();

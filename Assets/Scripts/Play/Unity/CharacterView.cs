@@ -25,6 +25,12 @@ namespace Game.Play
         public Vector3 Position => transform.position;
 
         /// <summary>
+        /// このキャラクターの当たり判定。コインが「触れたのは誰か」を
+        /// タグや名前ではなく実物の参照で判定できるようにするために公開している。
+        /// </summary>
+        public Collider Collider => characterController;
+
+        /// <summary>
         /// Initialize が呼ばれるまで動かない。
         ///
         /// Additive でロードしたシーンのオブジェクトは、GameRoot が Initialize を呼ぶより

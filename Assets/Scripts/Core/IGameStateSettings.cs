@@ -15,8 +15,11 @@ namespace Game.Core
         /// <summary>制限時間（秒）。</summary>
         float TimeLimitSeconds { get; }
 
-        /// <summary>フィールドに配置するコインの枚数。</summary>
+        /// <summary>フィールドに配置するコインの枚数（通常・特殊の合計）。</summary>
         int CoinCount { get; }
+
+        /// <summary>CoinCount のうち特殊コインにする枚数。</summary>
+        int SpecialCoinCount { get; }
 
         /// <summary>敵と衝突したときに減少する HP。</summary>
         int DamageOnEnemyHit { get; }

@@ -17,4 +17,7 @@ MonoBehaviour:
   enemySpeed: 2
   enemyDirectionChangeInterval: 1.5
   fieldCenter: {x: 0, y: 0, z: 0}
-  fieldSize: {x: 5, y: 0, z: 5}
+  fieldSize: {x: 20, y: 0, z: 20}
+  coinHeight: 0.5
+  coinMinDistance: 0.8
+  coinRandomSeed: 0

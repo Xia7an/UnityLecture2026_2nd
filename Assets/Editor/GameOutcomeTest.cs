@@ -17,6 +17,7 @@ namespace Game.Tests
             public int MaxHp { get; set; } = 100;
             public float TimeLimitSeconds { get; set; } = 120f;
             public int CoinCount { get; set; } = 30;
+            public int SpecialCoinCount { get; set; } = 3;
             public int DamageOnEnemyHit { get; set; } = 10;
             public float InvincibleDuration { get; set; } = 10f;
         }

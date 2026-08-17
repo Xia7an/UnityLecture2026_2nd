@@ -22,7 +22,13 @@ namespace Game
         /// 注意: このメソッドはシーン内オブジェクトの Awake より後に呼ばれる。
         /// 注入された依存を Awake や Start で使ってはいけない。
         /// </summary>
-        public abstract void Initialize(GameState gameState);
+        /// <param name="gameState">シーンをまたいで保持される状態。</param>
+        /// <param name="settings">
+        /// 変化しない設定値。状態と同じくアプリ全体で 1 つなので GameRoot から渡す。
+        /// 各シーンが自前で ScriptableObject を参照すると、GameRoot が持つものと
+        /// 食い違いうるため、供給元を 1 箇所に絞っている。
+        /// </param>
+        public abstract void Initialize(GameState gameState, IGameStateSettings settings);
 
         /// <summary>
         /// このシーンの役目が終わったことを通知する。

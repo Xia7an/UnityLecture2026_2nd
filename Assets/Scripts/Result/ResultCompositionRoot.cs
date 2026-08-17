@@ -23,7 +23,7 @@ namespace Game.Result
 
         private void Awake() => enabled = false;
 
-        public override void Initialize(GameState gameState)
+        public override void Initialize(GameState gameState, IGameStateSettings settings)
         {
             Outcome = GameOutcomeEvaluator.Evaluate(gameState);
 

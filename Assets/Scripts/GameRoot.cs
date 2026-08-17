@@ -66,7 +66,7 @@ namespace Game
             // 明示的な状態初期化。いつ初期化するのかをコード上ではっきりさせている。
             if (sceneName == SceneName.Play) gameState.Reset(settings);
 
-            compositionRoot.Initialize(gameState);
+            compositionRoot.Initialize(gameState, settings);
         }
 
         private void OnSceneFinished(Scene current, SceneName from, SceneResult result)
