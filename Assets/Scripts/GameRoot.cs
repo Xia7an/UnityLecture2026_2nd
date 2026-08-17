@@ -21,6 +21,9 @@ namespace Game
     {
         [SerializeField] private GameStateSettings settings;
 
+        [Tooltip("Title を通らずにシーンへ直接入ったときの状態。単独テスト用。")]
+        [SerializeField] private DebugStartState debugStartState = new();
+
         private readonly GameState gameState = new();
 
         /// <summary>今ロードしているシーンの購読。遷移のたびに解除して張り直す。</summary>
@@ -34,13 +37,42 @@ namespace Game
                 return;
             }
 
-            LoadSceneAsync(SceneName.Title).Forget();
+            StartGameAsync().Forget();
         }
 
         private void OnDestroy()
         {
             sceneSubscription.Dispose();
             gameState.Dispose();
+        }
+
+        /// <summary>
+        /// 開始シーンを決めて立ち上げる。
+        ///
+        /// Root 以外のシーンがすでにロードされていれば、そのシーンから始める。
+        /// エディタで Play シーンを開いたまま Root を Additive で開いて再生すると、
+        /// Title を経由せずにそのシーンだけを確かめられる。
+        /// ビルドでは Root しかロードされていないので、常に Title から始まる。
+        /// つまり単独テストのために本番の経路を分岐させていない。
+        /// </summary>
+        private async UniTask StartGameAsync()
+        {
+            if (TryFindLoadedGameScene(out var scene, out var sceneName))
+            {
+                // Play はどう入っても Reset から始まるので、下の BeginScene に任せる。
+                // Title と Result は Play を通っていないぶん、ここで状態を作ってやる。
+                // Result の CompositionRoot は Initialize の中で状態を読むので、順序が重要。
+                if (sceneName != SceneName.Play)
+                {
+                    gameState.Reset(settings);
+                    debugStartState.ApplyTo(gameState);
+                }
+
+                BeginScene(scene, sceneName, resetState: sceneName == SceneName.Play);
+                return;
+            }
+
+            await LoadSceneAsync(SceneName.Title);
         }
 
         /// <summary>シーンを Additive でロードし、その CompositionRoot に依存を注入する。</summary>
@@ -50,8 +82,17 @@ namespace Game
 
             await SceneManager.LoadSceneAsync(assetName, LoadSceneMode.Additive);
 
-            var scene = SceneManager.GetSceneByName(assetName);
+            // 明示的な状態初期化。いつ初期化するのかをコード上ではっきりさせている。
+            BeginScene(SceneManager.GetSceneByName(assetName), sceneName,
+                resetState: sceneName == SceneName.Play);
+        }
 
+        /// <summary>
+        /// ロード済みのシーンに依存を配線する。
+        /// 通常の遷移でロードした直後と、単独再生でそのシーンから始めるときの両方から呼ぶ。
+        /// </summary>
+        private void BeginScene(Scene scene, SceneName sceneName, bool resetState)
+        {
             // ライティングやスカイボックスは「アクティブなシーン」の設定が使われる。
             // これを呼ばないと Root シーンの設定のままになる。
             SceneManager.SetActiveScene(scene);
@@ -63,10 +104,31 @@ namespace Game
                 .Subscribe(result => OnSceneFinished(scene, sceneName, result))
                 .AddTo(sceneSubscription);
 
-            // 明示的な状態初期化。いつ初期化するのかをコード上ではっきりさせている。
-            if (sceneName == SceneName.Play) gameState.Reset(settings);
+            if (resetState) gameState.Reset(settings);
 
             compositionRoot.Initialize(gameState, settings);
+        }
+
+        /// <summary>
+        /// Root 以外のロード済みシーンを探す。単独再生かどうかの判定に使う。
+        /// SceneName に対応しない名前のシーン（テスト用に開いたものなど）は無視する。
+        /// </summary>
+        private static bool TryFindLoadedGameScene(out Scene scene, out SceneName sceneName)
+        {
+            for (var i = 0; i < SceneManager.sceneCount; i++)
+            {
+                var loaded = SceneManager.GetSceneAt(i);
+
+                if (!Enum.TryParse(loaded.name, out sceneName)) continue;
+                if (sceneName == SceneName.Root) continue;
+
+                scene = loaded;
+                return true;
+            }
+
+            scene = default;
+            sceneName = default;
+            return false;
         }
 
         private void OnSceneFinished(Scene current, SceneName from, SceneResult result)
@@ -120,6 +182,39 @@ namespace Game
             }
 
             return compositionRoot;
+        }
+
+        /// <summary>
+        /// Title を通らずにシーンへ直接入ったときに使う、ゲーム状態の初期値。
+        ///
+        /// Result シーンを単独で確かめるためにある。決着状況は Evaluate が状態から導出するので、
+        /// 「クリアした状態」を作るにはコイン枚数を揃えてやる必要がある。
+        /// 終了理由をフィールドとして持たない設計の裏返しである。
+        ///
+        /// 既定値は全コイン取得（クリア）。失敗の表示を確かめたいときは、コインを取り切って
+        /// いない状態にしたうえで hp を 0 にする。クリア判定はコイン枚数が優先されるため。
+        /// Play シーンには効かない。Play は常に Reset された状態から始まるため。
+        /// </summary>
+        [Serializable]
+        private sealed class DebugStartState
+        {
+            [Tooltip("Title / Result へ直接入ったとき、下の値で状態を上書きする。ビルドでは使われない。")]
+            [SerializeField] private bool overrideState = true;
+
+            [SerializeField] private int hp = 100;
+            [SerializeField] private float remainingTimeSeconds = 60f;
+            [SerializeField] private int collectedCoinCount = 30;
+            [SerializeField] private int totalCoinCount = 30;
+
+            public void ApplyTo(GameState gameState)
+            {
+                if (!overrideState) return;
+
+                gameState.Hp.Value = hp;
+                gameState.RemainingTimeSeconds.Value = remainingTimeSeconds;
+                gameState.TotalCoinCount.Value = totalCoinCount;
+                gameState.CollectedCoinCount.Value = collectedCoinCount;
+            }
         }
     }
 }

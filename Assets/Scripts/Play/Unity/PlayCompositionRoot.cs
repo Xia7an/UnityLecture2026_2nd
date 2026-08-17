@@ -20,6 +20,7 @@ namespace Game.Play
         [SerializeField] private PlaySettings playSettings;
         [SerializeField] private CharacterView playerView;
         [SerializeField] private CharacterView[] enemyViews;
+        [SerializeField] private UIView[] uiViews;
 
         [Header("コイン")]
         [SerializeField] private GameObject normalCoinPrefab;
@@ -59,6 +60,11 @@ namespace Game.Play
                     playSettings.EnemySpeed,
                     playSettings.EnemyDirectionChangeInterval,
                     playSettings.FieldBounds));
+            }
+
+            foreach (var uiView in uiViews)
+            {
+                uiView.Initialize(gameState);
             }
 
             SpawnCoins(gameState, gameStateSettings, random);
