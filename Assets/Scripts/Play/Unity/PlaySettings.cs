@@ -14,6 +14,9 @@ namespace Game.Play
         [SerializeField] private float dashSpeed = 6f;
 
         [Header("敵")]
+        [Tooltip("ステージ上に生成する敵の数。")]
+        [SerializeField] private int enemyCount = 5;
+
         [SerializeField] private float enemySpeed = 2f;
         [SerializeField] private float enemyDirectionChangeInterval = 1.5f;
 
@@ -37,6 +40,9 @@ namespace Game.Play
 
         /// <summary>ダッシュ中の速度。</summary>
         public float DashSpeed => dashSpeed;
+
+        /// <summary>ステージ上に生成する敵の数。</summary>
+        public int EnemyCount => enemyCount;
 
         /// <summary>敵の移動速度。</summary>
         public float EnemySpeed => enemySpeed;

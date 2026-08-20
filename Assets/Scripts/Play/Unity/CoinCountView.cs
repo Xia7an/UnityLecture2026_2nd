@@ -11,7 +11,7 @@ namespace Game.Play
         
         [SerializeField] private TextMeshProUGUI timerText;
         
-        public override void Initialize(GameState gameState)
+        public override void Initialize(GameState gameState, IGameStateSettings settings)
         {
             _gameState = gameState;
             gameState.CollectedCoinCount.Subscribe(v =>

@@ -12,6 +12,8 @@ namespace Game.Result
     /// </summary>
     public sealed class ResultCompositionRoot : CompositionRoot
     {
+        [SerializeField] private ResultOutcomeView outcomeView;
+
         private readonly Subject<SceneResult> onFinishScene = new();
 
         private ResultInput input;
@@ -26,6 +28,16 @@ namespace Game.Result
         public override void Initialize(GameState gameState, IGameStateSettings settings)
         {
             Outcome = GameOutcomeEvaluator.Evaluate(gameState);
+
+            if (outcomeView == null)
+            {
+                Debug.LogError(
+                    $"{nameof(ResultCompositionRoot)}: {nameof(outcomeView)} が設定されていません。",
+                    this);
+                return;
+            }
+
+            outcomeView.Initialize(Outcome);
 
             input = new ResultInput();
             input.Result.Enable();
