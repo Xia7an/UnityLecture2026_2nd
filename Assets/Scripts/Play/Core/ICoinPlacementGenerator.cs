@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Game.Play.Core
 {
@@ -14,11 +15,8 @@ namespace Game.Play.Core
     /// </summary>
     public interface ICoinPlacementGenerator
     {
-        /// <summary>
-        /// コインの配置を決める。
-        /// </summary>
-        /// <param name="totalCount">配置する総枚数。</param>
-        /// <param name="specialCount">そのうち特殊コインにする枚数。</param>
-        IReadOnlyList<CoinPlacement> Generate(int totalCount, int specialCount);
+        /// <summary>コインを置く位置を決める。</summary>
+        /// <param name="totalCount">配置する枚数。</param>
+        IReadOnlyList<Vector3> Generate(int totalCount);
     }
 }

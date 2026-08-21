@@ -21,15 +21,8 @@ namespace Game.Play
         [SerializeField] private CharacterView playerView;
         [SerializeField] private UIView[] uiViews;
 
-        [Header("敵")]
-        [SerializeField] private GameObject enemyPrefab;
-
-        [Tooltip("生成した敵をまとめる親。未設定ならシーン直下に置く。")]
-        [SerializeField] private Transform enemyParent;
-
         [Header("コイン")]
         [SerializeField] private GameObject normalCoinPrefab;
-        [SerializeField] private GameObject specialCoinPrefab;
 
         [Tooltip("生成したコインをまとめる親。未設定ならシーン直下に置く。")]
         [SerializeField] private Transform coinParent;
@@ -52,13 +45,10 @@ namespace Game.Play
             playerInput = new PlayerInputAdapter(new PlayInput());
 
             // ここで渡す実装を差し替えるだけで、プレイヤーの動きを変えられる。
-            // 例えば new RandomWalkMoveLogic(...) を渡せばプレイヤーが勝手に歩き回る。
             playerView.Initialize(
                 new PlayerMoveLogic(playerInput, playSettings.WalkSpeed, playSettings.DashSpeed));
 
             var random = playSettings.CreateCoinRandom();
-
-            SpawnEnemies(gameState, gameStateSettings, random);
 
             foreach (var uiView in uiViews)
             {
@@ -79,13 +69,7 @@ namespace Game.Play
 
             if (playSettings == null) missing.Add(nameof(playSettings));
             if (playerView == null) missing.Add(nameof(playerView));
-            if (enemyPrefab == null) missing.Add(nameof(enemyPrefab));
-            if (enemyPrefab != null && enemyPrefab.GetComponent<CharacterView>() == null)
-                missing.Add($"{nameof(enemyPrefab)}.{nameof(CharacterView)}");
-            if (enemyPrefab != null && enemyPrefab.GetComponent<EnemyContactView>() == null)
-                missing.Add($"{nameof(enemyPrefab)}.{nameof(EnemyContactView)}");
             if (normalCoinPrefab == null) missing.Add(nameof(normalCoinPrefab));
-            if (specialCoinPrefab == null) missing.Add(nameof(specialCoinPrefab));
 
             if (missing.Count == 0) return true;
 
@@ -98,53 +82,9 @@ namespace Game.Play
         }
 
         /// <summary>
-        /// 敵をフィールド上に生成する。
-        ///
-        /// 敵 1 体ごとに RandomWalkMoveLogic を新しく作って渡す。
-        /// 進行方向と向きを変えるまでの残り時間はロジックが自分で持つので、
-        /// 同じインスタンスを使い回すと全員が同じ方向へ動いてしまう。
-        ///
-        /// 一方で乱数はコインと共有している。シードを固定すれば
-        /// 敵の初期位置も動きも毎回同じになり、講習中に再現しやすくなる。
-        /// </summary>
-        private void SpawnEnemies(
-            GameState gameState,
-            IGameStateSettings gameStateSettings,
-            System.Random random)
-        {
-            for (var i = 0; i < playSettings.EnemyCount; i++)
-            {
-                var enemy = Instantiate(
-                    enemyPrefab, RandomFieldPoint(random), Quaternion.identity, enemyParent);
-
-                enemy.GetComponent<CharacterView>().Initialize(new RandomWalkMoveLogic(
-                    random,
-                    playSettings.EnemySpeed,
-                    playSettings.EnemyDirectionChangeInterval,
-                    playSettings.FieldBounds));
-
-                // どの Collider をプレイヤーとみなし、接触時に何を起こすかをここで結線する。
-                // EnemyContactView は HP という状態を知らず、GameState だけが HP を変更する。
-                enemy.GetComponent<EnemyContactView>().Initialize(
-                    playerView.Collider,
-                    () => gameState.ApplyEnemyHit(gameStateSettings));
-            }
-        }
-
-        /// <summary>フィールド内のランダムな一点を返す。敵の初期位置に使う。</summary>
-        private Vector3 RandomFieldPoint(System.Random random)
-        {
-            var bounds = playSettings.FieldBounds;
-            var x = Mathf.Lerp(bounds.min.x, bounds.max.x, (float)random.NextDouble());
-            var z = Mathf.Lerp(bounds.min.z, bounds.max.z, (float)random.NextDouble());
-
-            return new Vector3(x, bounds.center.y, z);
-        }
-
-        /// <summary>
         /// コインをフィールド上に配置する。
         ///
-        /// 「どこに何を置くか」の判断は ICoinPlacementGenerator に切り出してあり、
+        /// 「どこに置くか」の判断は ICoinPlacementGenerator に切り出してあり、
         /// ここは決まった位置にプレハブを実体化して結線するだけを担当する。
         /// 移動ロジックと見た目を分けたのと同じ切り分けである。
         /// </summary>
@@ -159,48 +99,35 @@ namespace Game.Play
                 playSettings.CoinHeight,
                 playSettings.CoinMinDistance);
 
-            var placements = generator.Generate(
-                gameStateSettings.CoinCount,
-                gameStateSettings.SpecialCoinCount);
+            var positions = generator.Generate(gameStateSettings.CoinCount);
 
             var playerCollider = playerView.Collider;
 
-            foreach (var placement in placements)
+            foreach (var position in positions)
             {
-                var isSpecial = placement.Kind == CoinKind.Special;
-                var prefab = isSpecial ? specialCoinPrefab : normalCoinPrefab;
-
                 // プレハブの回転をそのまま使う。コインは立てて置きたいため。
-                var coin = Instantiate(prefab, placement.Position, prefab.transform.rotation, coinParent);
+                var coin = Instantiate(
+                    normalCoinPrefab, position, normalCoinPrefab.transform.rotation, coinParent);
 
                 // 取得したときに何が起きるかは、ここで決めて渡す。
-                // CoinView 自身は自分が通常なのか特殊なのかを知らない。
-                if (isSpecial)
-                {
-                    coin.GetComponent<CoinView>().Initialize(playerCollider, () => gameState.CollectSpecialCoin(gameStateSettings));
-                }
-                else
-                {
-                    coin.GetComponent<CoinView>().Initialize(playerCollider, gameState.CollectCoin);
-                }
+                coin.GetComponent<CoinView>().Initialize(playerCollider, gameState.CollectCoin);
             }
         }
 
         /// <summary>
-        /// 時間を進め、決着がついたかを確かめる。
+        /// 決着がついたかを毎フレーム確かめる。
         ///
-        /// GameState は Pure C# で Update を持たないため、こうして毎フレーム呼んでやる。
-        /// 次回講習で扱う DIContainer には、この登録を肩代わりする仕組みがある。
+        /// 判定そのものは Core 層の純粋関数に任せ、ここは結果に応じて
+        /// シーンの終了を通知するだけにする。
         /// </summary>
         private void Update()
         {
             if (gameState == null) return;
 
-            gameState.Tick(Time.deltaTime);
-
             var outcome = GameOutcomeEvaluator.Evaluate(gameState);
             if (outcome == GameOutcome.InProgress) return;
 
+            // リザルトシーンに移動
             onFinishScene.OnNext(outcome.ToSceneResult());
 
             // 二重に通知しないよう、決着したら以降は動かさない。
