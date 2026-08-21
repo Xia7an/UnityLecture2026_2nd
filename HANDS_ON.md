@@ -7,14 +7,15 @@
 
 | | |
 |---|---|
-| ブランチ | `feat/pure-2` |
+| ブランチ | `feat/pure-3` |
 | 設計 | **ピュア（模範）** — 状態と純粋関数を分ける |
 | 開くシーン | `Assets/Scenes/Root.unity` |
 
 ### このブランチのゲーム要件
 
-- フィールドのランダムな位置に現れる 30 枚のコインを、**1 分以内に**全て集めたらクリア
+- フィールドのランダムな位置に現れる 30 枚のコインを、1 分以内に全て集めたらクリア
 - 集められなかったら失敗
+- **敵（デカい猫）が現れる。自機の HP は初期値 100。敵に衝突したら HP が 10 減る。HP が 0 になったら失敗**
 
 ### 注目してほしいコード
 
@@ -25,6 +26,7 @@
 | `Assets/Scripts/Core/IGameStateSettings.cs` | **設定**。変化しない値はこちら |
 | `Assets/Scripts/Play/Unity/PlayCompositionRoot.cs` | **組み立て役**。誰と誰をつなぐかだけを決める |
 | `Assets/Scripts/Play/Unity/CoinView.cs` | **View**。触れたら渡された処理を呼ぶだけ。コイン枚数を知らない |
+| `Assets/Scripts/Play/Unity/EnemyContactView.cs` | **View**。触れたら渡された処理を呼ぶだけ。HP もダメージ量も知らない |
 
 `GameState` に「クリアしたかどうか」「なぜ終わったか」というフィールドが **無い** ことを
 確かめてください。決着状況は残り時間とコイン枚数から毎回導出しています。
@@ -32,18 +34,16 @@
 ### 前のブランチからの差分
 
 ```sh
-git diff feat/pure-1 feat/pure-2
+git diff feat/pure-2 feat/pure-3
 ```
 
-要件で増えたのは「時間の概念」と「それによるゲーム終了」の 2 つだけで、
-コードの差分もその 2 つに対応しています。
+- `GameState` に `Hp` と `ApplyEnemyHit` が増えた（状態が 1 つ増えた）
+- `GameOutcomeEvaluator.Evaluate` に HP の行が 1 行増えた（終了条件が 1 つ増えた）
+- `EnemyContactView` が増えた。触れたら **渡された処理を 1 回呼ぶだけ** の View
+- `PlayCompositionRoot` が `() => gameState.ApplyEnemyHit(settings)` を渡して結線する
 
-- `GameState` に `RemainingTimeSeconds` と `Tick` が増えた（状態が 1 つ増えた）
-- `GameOutcomeEvaluator.Evaluate` に時間切れの行が 1 行増えた（終了条件が 1 つ増えた）
-- `PlayCompositionRoot.Update` が `gameState.Tick()` を呼ぶようになった
-
-シーン遷移のコードは **1 文字も変わっていません**。
-「`Evaluate` の結果が `InProgress` でなければ移動する」のままです。
+HP を減らしているのは `GameState.ApplyEnemyHit` **ただ 1 箇所** です。
+`EnemyContactView` は HP の存在を知りません。
 
 ## ブランチ一覧
 
@@ -57,8 +57,8 @@ git diff feat/pure-1 feat/pure-2
 | ④ ＋ 無敵になるスペシャルコイン 3 枚 | `feat/hell-4` | `feat/pure-4` |
 
 ```sh
-git switch feat/pure-3      # 次の要件へ
-git diff feat/pure-2 feat/pure-3   # 要件が増えたぶんの差分だけが見える
+git switch feat/pure-4      # 次の要件へ
+git diff feat/pure-3 feat/pure-4   # 要件が増えたぶんの差分だけが見える
 ```
 
 ## 動かし方

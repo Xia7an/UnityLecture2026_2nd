@@ -9,7 +9,7 @@ namespace Game.Core
         /// <summary>全コインを取得した。</summary>
         Clear,
 
-        /// <summary>時間切れになった。</summary>
+        /// <summary>HP が 0 になった、または時間切れになった。</summary>
         Failure,
     }
 
@@ -19,7 +19,7 @@ namespace Game.Core
         /// 現在の状態から決着状況を求める。
         ///
         /// 終了理由を GameState のフィールドとして別に持たないのは、
-        /// 残り時間・コイン枚数から導出できる値を二重に管理しないためである。
+        /// HP・残り時間・コイン枚数から導出できる値を二重に管理しないためである。
         /// Play シーンは終了判定に、Result シーンは表示内容の決定に、同じこの関数を使う。
         ///
         /// 副作用のない純粋関数なので、シーンを開かずに EditMode テストで検証できる。
@@ -34,6 +34,8 @@ namespace Game.Core
             {
                 return GameOutcome.Clear;
             }
+
+            if (state.Hp.CurrentValue <= 0) return GameOutcome.Failure;
 
             // コインを集めきれずに時間切れになった状態なので失敗として扱う。
             if (state.RemainingTimeSeconds.CurrentValue <= 0f) return GameOutcome.Failure;

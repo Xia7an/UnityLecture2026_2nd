@@ -12,5 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a110f9e5e43446268d0de4eea529395, type: 3}
   m_Name: GameStateSettings
   m_EditorClassIdentifier: Assembly-CSharp::Game.GameStateSettings
+  maxHp: 100
   timeLimitSeconds: 60
   coinCount: 30
+  damageOnEnemyHit: 10

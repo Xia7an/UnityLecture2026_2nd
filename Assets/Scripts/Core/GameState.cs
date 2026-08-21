@@ -6,10 +6,10 @@ namespace Game.Core
     /// <summary>
     /// シーンをまたいで保持されるゲームの状態。
     ///
-    /// 保持するのは「変化する値」だけである。制限時間の長さや配置するコインの枚数といった
+    /// 保持するのは「変化する値」だけである。1 ヒットの被ダメージ量や制限時間の長さといった
     /// 変化しない値は設定であり、IGameStateSettings 側に置く。
     ///
-    /// 各フィールドを ReactiveProperty にしているのは、残り時間やコイン枚数の表示が
+    /// 各フィールドを ReactiveProperty にしているのは、HP バーやスコア表示が
     /// 毎フレーム読みに来るのではなく購読できるようにするためである。
     /// 「シーンが終わった」のような出来事は Subject で表すが、コイン枚数は状態なので
     /// ReactiveProperty を使う。この使い分けが本講習会の主題そのものにあたる。
@@ -19,9 +19,13 @@ namespace Game.Core
     /// </summary>
     public sealed class GameState : IDisposable
     {
+        private readonly ReactiveProperty<int> hp = new();
         private readonly ReactiveProperty<float> remainingTimeSeconds = new();
         private readonly ReactiveProperty<int> collectedCoinCount = new();
         private readonly ReactiveProperty<int> totalCoinCount = new();
+
+        /// <summary>プレイヤーの残り HP。</summary>
+        public ReactiveProperty<int> Hp => hp;
 
         /// <summary>残り時間（秒）。0 になると時間切れ。</summary>
         public ReactiveProperty<float> RemainingTimeSeconds => remainingTimeSeconds;
@@ -43,6 +47,7 @@ namespace Game.Core
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
 
+            hp.Value = settings.MaxHp;
             remainingTimeSeconds.Value = settings.TimeLimitSeconds;
             collectedCoinCount.Value = 0;
             totalCoinCount.Value = settings.CoinCount;
@@ -63,6 +68,14 @@ namespace Game.Core
             }
         }
 
+        /// <summary>敵と衝突したときに呼ぶ。</summary>
+        public void ApplyEnemyHit(IGameStateSettings settings)
+        {
+            if (settings == null) throw new ArgumentNullException(nameof(settings));
+
+            hp.Value = Math.Max(0, hp.CurrentValue - settings.DamageOnEnemyHit);
+        }
+
         /// <summary>コインを取得したときに呼ぶ。</summary>
         public void CollectCoin()
         {
@@ -71,6 +84,7 @@ namespace Game.Core
 
         public void Dispose()
         {
+            hp.Dispose();
             remainingTimeSeconds.Dispose();
             collectedCoinCount.Dispose();
             totalCoinCount.Dispose();

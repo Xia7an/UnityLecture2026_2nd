@@ -9,10 +9,16 @@ namespace Game.Core
     /// </summary>
     public interface IGameStateSettings
     {
+        /// <summary>プレイヤーの初期 HP。</summary>
+        int MaxHp { get; }
+
         /// <summary>制限時間（秒）。</summary>
         float TimeLimitSeconds { get; }
 
         /// <summary>フィールドに配置するコインの枚数。</summary>
         int CoinCount { get; }
+
+        /// <summary>敵と衝突したときに減少する HP。</summary>
+        int DamageOnEnemyHit { get; }
     }
 }

@@ -14,8 +14,10 @@ namespace Game.Tests
         /// <summary>テスト用の設定値。</summary>
         private sealed class StubSettings : IGameStateSettings
         {
+            public int MaxHp { get; set; } = 100;
             public float TimeLimitSeconds { get; set; } = 60f;
             public int CoinCount { get; set; } = 30;
+            public int DamageOnEnemyHit { get; set; } = 10;
         }
 
         private static GameState CreateResetState(StubSettings settings = null)
@@ -47,6 +49,19 @@ namespace Game.Tests
         }
 
         [Test]
+        public void HPが0になると失敗()
+        {
+            var settings = new StubSettings { MaxHp = 20, DamageOnEnemyHit = 10 };
+            using var state = CreateResetState(settings);
+
+            state.ApplyEnemyHit(settings);
+            Assert.That(GameOutcomeEvaluator.Evaluate(state), Is.EqualTo(GameOutcome.InProgress));
+
+            state.ApplyEnemyHit(settings);
+            Assert.That(GameOutcomeEvaluator.Evaluate(state), Is.EqualTo(GameOutcome.Failure));
+        }
+
+        [Test]
         public void 時間切れは失敗として扱う()
         {
             using var state = CreateResetState(new StubSettings { TimeLimitSeconds = 1f });
@@ -72,14 +87,16 @@ namespace Game.Tests
         [Test]
         public void Resetで前回の状態が残らない()
         {
-            var settings = new StubSettings { TimeLimitSeconds = 60f, CoinCount = 30 };
+            var settings = new StubSettings { MaxHp = 100, TimeLimitSeconds = 60f, CoinCount = 30 };
             using var state = CreateResetState(settings);
 
             state.CollectCoin();
+            state.ApplyEnemyHit(settings);
             state.Tick(30f);
 
             state.Reset(settings);
 
+            Assert.That(state.Hp.CurrentValue, Is.EqualTo(100));
             Assert.That(state.RemainingTimeSeconds.CurrentValue, Is.EqualTo(60f).Within(0.0001f));
             Assert.That(state.CollectedCoinCount.CurrentValue, Is.EqualTo(0));
             Assert.That(state.TotalCoinCount.CurrentValue, Is.EqualTo(30));
