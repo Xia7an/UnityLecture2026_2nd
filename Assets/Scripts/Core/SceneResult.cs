@@ -11,5 +11,8 @@ namespace Game.Core
 
         /// <summary>ゲームクリア。Play → Result で使う。</summary>
         GameClear,
+
+        /// <summary>ゲーム失敗。Play → Result で使う。</summary>
+        GameFailure,
     }
 }

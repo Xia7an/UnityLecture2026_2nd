@@ -14,6 +14,7 @@ namespace Game.Tests
         /// <summary>テスト用の設定値。</summary>
         private sealed class StubSettings : IGameStateSettings
         {
+            public float TimeLimitSeconds { get; set; } = 60f;
             public int CoinCount { get; set; } = 30;
         }
 
@@ -46,15 +47,40 @@ namespace Game.Tests
         }
 
         [Test]
-        public void Resetで前回の状態が残らない()
+        public void 時間切れは失敗として扱う()
         {
-            var settings = new StubSettings { CoinCount = 30 };
+            using var state = CreateResetState(new StubSettings { TimeLimitSeconds = 1f });
+
+            state.Tick(1f);
+
+            Assert.That(state.RemainingTimeSeconds.CurrentValue, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(GameOutcomeEvaluator.Evaluate(state), Is.EqualTo(GameOutcome.Failure));
+        }
+
+        [Test]
+        public void 時間内に全コインを取ればクリアが優先される()
+        {
+            var settings = new StubSettings { TimeLimitSeconds = 1f, CoinCount = 1 };
             using var state = CreateResetState(settings);
 
             state.CollectCoin();
+            state.Tick(1f);
+
+            Assert.That(GameOutcomeEvaluator.Evaluate(state), Is.EqualTo(GameOutcome.Clear));
+        }
+
+        [Test]
+        public void Resetで前回の状態が残らない()
+        {
+            var settings = new StubSettings { TimeLimitSeconds = 60f, CoinCount = 30 };
+            using var state = CreateResetState(settings);
+
+            state.CollectCoin();
+            state.Tick(30f);
 
             state.Reset(settings);
 
+            Assert.That(state.RemainingTimeSeconds.CurrentValue, Is.EqualTo(60f).Within(0.0001f));
             Assert.That(state.CollectedCoinCount.CurrentValue, Is.EqualTo(0));
             Assert.That(state.TotalCoinCount.CurrentValue, Is.EqualTo(30));
         }
@@ -63,6 +89,7 @@ namespace Game.Tests
         public void 決着状況はSceneResultへ変換できる()
         {
             Assert.That(GameOutcome.Clear.ToSceneResult(), Is.EqualTo(SceneResult.GameClear));
+            Assert.That(GameOutcome.Failure.ToSceneResult(), Is.EqualTo(SceneResult.GameFailure));
             Assert.That(GameOutcome.InProgress.ToSceneResult(), Is.EqualTo(SceneResult.Normal));
         }
     }

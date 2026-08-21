@@ -156,6 +156,7 @@ namespace Game
         {
             (SceneName.Title, SceneResult.Normal) => SceneName.Play,
             (SceneName.Play, SceneResult.GameClear) => SceneName.Result,
+            (SceneName.Play, SceneResult.GameFailure) => SceneName.Result,
             (SceneName.Result, SceneResult.Normal) => SceneName.Title,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(result),
@@ -190,7 +191,8 @@ namespace Game
         /// 「クリアした状態」を作るにはコイン枚数を揃えてやる必要がある。
         /// 決着状況をフィールドとして持たない設計の裏返しである。
         ///
-        /// 既定値は全コイン取得（クリア）。
+        /// 既定値は全コイン取得（クリア）。失敗の表示を確かめたいときは、コインを取り切って
+        /// いない状態にしたうえで残り時間を 0 にする。クリア判定はコイン枚数が優先されるため。
         /// Play シーンには効かない。Play は常に Reset された状態から始まるため。
         /// </summary>
         [Serializable]
@@ -199,6 +201,7 @@ namespace Game
             [Tooltip("Title / Result へ直接入ったとき、下の値で状態を上書きする。ビルドでは使われない。")]
             [SerializeField] private bool overrideState = true;
 
+            [SerializeField] private float remainingTimeSeconds = 60f;
             [SerializeField] private int collectedCoinCount = 30;
             [SerializeField] private int totalCoinCount = 30;
 
@@ -206,6 +209,7 @@ namespace Game
             {
                 if (!overrideState) return;
 
+                gameState.RemainingTimeSeconds.Value = remainingTimeSeconds;
                 gameState.TotalCoinCount.Value = totalCoinCount;
                 gameState.CollectedCoinCount.Value = collectedCoinCount;
             }

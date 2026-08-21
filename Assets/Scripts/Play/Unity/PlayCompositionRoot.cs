@@ -115,14 +115,16 @@ namespace Game.Play
         }
 
         /// <summary>
-        /// 決着がついたかを毎フレーム確かめる。
+        /// 時間を進め、決着がついたかを確かめる。
         ///
-        /// 判定そのものは Core 層の純粋関数に任せ、ここは結果に応じて
-        /// シーンの終了を通知するだけにする。
+        /// GameState は Pure C# で Update を持たないため、こうして毎フレーム呼んでやる。
+        /// 次回講習で扱う DIContainer には、この登録を肩代わりする仕組みがある。
         /// </summary>
         private void Update()
         {
             if (gameState == null) return;
+
+            gameState.Tick(Time.deltaTime);
 
             var outcome = GameOutcomeEvaluator.Evaluate(gameState);
             if (outcome == GameOutcome.InProgress) return;

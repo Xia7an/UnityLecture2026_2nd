@@ -45,5 +45,14 @@ namespace Game.Tests
             Assert.That(outcomeText.text, Is.EqualTo("GAME CLEAR"));
             Assert.That(outcomeText.color, Is.EqualTo(new Color(1f, 0.8f, 0.2f)));
         }
+
+        [Test]
+        public void 失敗なら失敗表示になる()
+        {
+            view.Initialize(GameOutcome.Failure);
+
+            Assert.That(outcomeText.text, Is.EqualTo("GAME FAILED"));
+            Assert.That(outcomeText.color, Is.EqualTo(new Color(1f, 0.3f, 0.3f)));
+        }
     }
 }

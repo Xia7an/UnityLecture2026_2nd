@@ -9,6 +9,9 @@ namespace Game.Core
     /// </summary>
     public interface IGameStateSettings
     {
+        /// <summary>制限時間（秒）。</summary>
+        float TimeLimitSeconds { get; }
+
         /// <summary>フィールドに配置するコインの枚数。</summary>
         int CoinCount { get; }
     }
