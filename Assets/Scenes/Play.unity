@@ -784,6 +784,7 @@ MonoBehaviour:
   enemyPrefab: {fileID: 2791411196961010466, guid: 7d7f1a00151664d3c9322aa8ce436c98, type: 3}
   enemyParent: {fileID: 0}
   normalCoinPrefab: {fileID: 8006535840763153500, guid: 591ff0211c678447faeeaa1dcd46fbd5, type: 3}
+  specialCoinPrefab: {fileID: 883886792987173400, guid: 95a0e9a8dad5e4563914a83c5ecffee5, type: 3}
   coinParent: {fileID: 0}
 --- !u!4 &873055661
 Transform:

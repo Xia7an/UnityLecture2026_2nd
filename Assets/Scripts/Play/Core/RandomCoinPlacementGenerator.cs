@@ -43,18 +43,45 @@ namespace Game.Play.Core
             this.minDistance = Mathf.Max(0f, minDistance);
         }
 
-        public IReadOnlyList<Vector3> Generate(int totalCount)
+        public IReadOnlyList<CoinPlacement> Generate(int totalCount, int specialCount)
         {
             if (totalCount < 0) throw new ArgumentOutOfRangeException(nameof(totalCount));
+            if (specialCount < 0) throw new ArgumentOutOfRangeException(nameof(specialCount));
 
+            // 特殊コインが総枚数を超えないよう丸める。
+            specialCount = Mathf.Min(specialCount, totalCount);
+
+            var kinds = CreateShuffledKinds(totalCount, specialCount);
+            var placements = new List<CoinPlacement>(totalCount);
             var positions = new List<Vector3>(totalCount);
 
             for (var i = 0; i < totalCount; i++)
             {
-                positions.Add(PickPosition(positions));
+                var position = PickPosition(positions);
+                positions.Add(position);
+                placements.Add(new CoinPlacement(kinds[i], position));
             }
 
-            return positions;
+            return placements;
+        }
+
+        /// <summary>種類の配列を作ってシャッフルする。特殊コインが偏らないようにするため。</summary>
+        private CoinKind[] CreateShuffledKinds(int totalCount, int specialCount)
+        {
+            var kinds = new CoinKind[totalCount];
+            for (var i = 0; i < totalCount; i++)
+            {
+                kinds[i] = i < specialCount ? CoinKind.Special : CoinKind.Normal;
+            }
+
+            // Fisher-Yates
+            for (var i = totalCount - 1; i > 0; i--)
+            {
+                var j = random.Next(i + 1);
+                (kinds[i], kinds[j]) = (kinds[j], kinds[i]);
+            }
+
+            return kinds;
         }
 
         private Vector3 PickPosition(List<Vector3> existing)

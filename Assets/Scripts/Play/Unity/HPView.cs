@@ -15,6 +15,16 @@ namespace Game.Play
             GameStateQueries.HpRatio(gameState, settings)
                 .Subscribe(ratio => hpGauge.fillAmount = ratio)
                 .AddTo(this);
+            
+            gameState.InvincibleRemainingSeconds.Where(v => v > 0).Subscribe(v =>
+            {
+                hpGauge.color = Color.darkBlue;
+            }).AddTo(this);
+            
+            gameState.InvincibleRemainingSeconds.Where(v => v <= 0).Subscribe(v =>
+            {
+                hpGauge.color = Color.green;
+            }).AddTo(this);
         }
     }
 }

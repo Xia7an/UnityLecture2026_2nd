@@ -29,6 +29,7 @@ namespace Game.Play
 
         [Header("コイン")]
         [SerializeField] private GameObject normalCoinPrefab;
+        [SerializeField] private GameObject specialCoinPrefab;
 
         [Tooltip("生成したコインをまとめる親。未設定ならシーン直下に置く。")]
         [SerializeField] private Transform coinParent;
@@ -51,6 +52,7 @@ namespace Game.Play
             playerInput = new PlayerInputAdapter(new PlayInput());
 
             // ここで渡す実装を差し替えるだけで、プレイヤーの動きを変えられる。
+            // 例えば new RandomWalkMoveLogic(...) を渡せばプレイヤーが勝手に歩き回る。
             playerView.Initialize(
                 new PlayerMoveLogic(playerInput, playSettings.WalkSpeed, playSettings.DashSpeed));
 
@@ -83,6 +85,7 @@ namespace Game.Play
             if (enemyPrefab != null && enemyPrefab.GetComponent<EnemyContactView>() == null)
                 missing.Add($"{nameof(enemyPrefab)}.{nameof(EnemyContactView)}");
             if (normalCoinPrefab == null) missing.Add(nameof(normalCoinPrefab));
+            if (specialCoinPrefab == null) missing.Add(nameof(specialCoinPrefab));
 
             if (missing.Count == 0) return true;
 
@@ -141,7 +144,7 @@ namespace Game.Play
         /// <summary>
         /// コインをフィールド上に配置する。
         ///
-        /// 「どこに置くか」の判断は ICoinPlacementGenerator に切り出してあり、
+        /// 「どこに何を置くか」の判断は ICoinPlacementGenerator に切り出してあり、
         /// ここは決まった位置にプレハブを実体化して結線するだけを担当する。
         /// 移動ロジックと見た目を分けたのと同じ切り分けである。
         /// </summary>
@@ -156,18 +159,30 @@ namespace Game.Play
                 playSettings.CoinHeight,
                 playSettings.CoinMinDistance);
 
-            var positions = generator.Generate(gameStateSettings.CoinCount);
+            var placements = generator.Generate(
+                gameStateSettings.CoinCount,
+                gameStateSettings.SpecialCoinCount);
 
             var playerCollider = playerView.Collider;
 
-            foreach (var position in positions)
+            foreach (var placement in placements)
             {
+                var isSpecial = placement.Kind == CoinKind.Special;
+                var prefab = isSpecial ? specialCoinPrefab : normalCoinPrefab;
+
                 // プレハブの回転をそのまま使う。コインは立てて置きたいため。
-                var coin = Instantiate(
-                    normalCoinPrefab, position, normalCoinPrefab.transform.rotation, coinParent);
+                var coin = Instantiate(prefab, placement.Position, prefab.transform.rotation, coinParent);
 
                 // 取得したときに何が起きるかは、ここで決めて渡す。
-                coin.GetComponent<CoinView>().Initialize(playerCollider, gameState.CollectCoin);
+                // CoinView 自身は自分が通常なのか特殊なのかを知らない。
+                if (isSpecial)
+                {
+                    coin.GetComponent<CoinView>().Initialize(playerCollider, () => gameState.CollectSpecialCoin(gameStateSettings));
+                }
+                else
+                {
+                    coin.GetComponent<CoinView>().Initialize(playerCollider, gameState.CollectCoin);
+                }
             }
         }
 
@@ -186,7 +201,6 @@ namespace Game.Play
             var outcome = GameOutcomeEvaluator.Evaluate(gameState);
             if (outcome == GameOutcome.InProgress) return;
 
-            // リザルトシーンに移動
             onFinishScene.OnNext(outcome.ToSceneResult());
 
             // 二重に通知しないよう、決着したら以降は動かさない。

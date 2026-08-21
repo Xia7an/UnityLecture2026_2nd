@@ -6,12 +6,12 @@ namespace Game.Core
     /// <summary>
     /// シーンをまたいで保持されるゲームの状態。
     ///
-    /// 保持するのは「変化する値」だけである。1 ヒットの被ダメージ量や制限時間の長さといった
+    /// 保持するのは「変化する値」だけである。1 ヒットの被ダメージ量や無敵時間の長さといった
     /// 変化しない値は設定であり、IGameStateSettings 側に置く。
     ///
     /// 各フィールドを ReactiveProperty にしているのは、HP バーやスコア表示が
     /// 毎フレーム読みに来るのではなく購読できるようにするためである。
-    /// 「シーンが終わった」のような出来事は Subject で表すが、コイン枚数は状態なので
+    /// 「シーンが終わった」のような出来事は Subject で表すが、HP や残り時間は状態なので
     /// ReactiveProperty を使う。この使い分けが本講習会の主題そのものにあたる。
     ///
     /// アプリの生存期間を通じて GameRoot が 1 インスタンスだけ保持し、
@@ -23,6 +23,7 @@ namespace Game.Core
         private readonly ReactiveProperty<float> remainingTimeSeconds = new();
         private readonly ReactiveProperty<int> collectedCoinCount = new();
         private readonly ReactiveProperty<int> totalCoinCount = new();
+        private readonly ReactiveProperty<float> invincibleRemainingSeconds = new();
 
         /// <summary>プレイヤーの残り HP。</summary>
         public ReactiveProperty<int> Hp => hp;
@@ -35,6 +36,12 @@ namespace Game.Core
 
         /// <summary>フィールドに配置されたコインの総数。Reset で設定から写す。</summary>
         public ReactiveProperty<int> TotalCoinCount => totalCoinCount;
+
+        /// <summary>無敵状態の残り時間（秒）。0 より大きい間は敵と衝突しても HP が減らない。</summary>
+        public ReactiveProperty<float> InvincibleRemainingSeconds => invincibleRemainingSeconds;
+
+        /// <summary>現在無敵状態かどうか。残り時間から導出するため、状態としては持たない。</summary>
+        public bool IsInvincible => invincibleRemainingSeconds.CurrentValue > 0f;
 
         /// <summary>
         /// 設定値をもとに状態を初期化する。
@@ -51,6 +58,7 @@ namespace Game.Core
             remainingTimeSeconds.Value = settings.TimeLimitSeconds;
             collectedCoinCount.Value = 0;
             totalCoinCount.Value = settings.CoinCount;
+            invincibleRemainingSeconds.Value = 0f;
         }
 
         /// <summary>
@@ -66,20 +74,36 @@ namespace Game.Core
             {
                 remainingTimeSeconds.Value = Math.Max(0f, remainingTimeSeconds.CurrentValue - deltaTime);
             }
+
+            if (invincibleRemainingSeconds.CurrentValue > 0f)
+            {
+                invincibleRemainingSeconds.Value =
+                    Math.Max(0f, invincibleRemainingSeconds.CurrentValue - deltaTime);
+            }
         }
 
-        /// <summary>敵と衝突したときに呼ぶ。</summary>
+        /// <summary>敵と衝突したときに呼ぶ。無敵状態なら何も起きない。</summary>
         public void ApplyEnemyHit(IGameStateSettings settings)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
+            if (IsInvincible) return;
 
             hp.Value = Math.Max(0, hp.CurrentValue - settings.DamageOnEnemyHit);
         }
 
-        /// <summary>コインを取得したときに呼ぶ。</summary>
+        /// <summary>通常コインを取得したときに呼ぶ。</summary>
         public void CollectCoin()
         {
             collectedCoinCount.Value = collectedCoinCount.CurrentValue + 1;
+        }
+
+        /// <summary>特殊コインを取得したときに呼ぶ。無敵時間を設定値まで戻す。</summary>
+        public void CollectSpecialCoin(IGameStateSettings settings)
+        {
+            if (settings == null) throw new ArgumentNullException(nameof(settings));
+
+            collectedCoinCount.Value = collectedCoinCount.CurrentValue + 1;
+            invincibleRemainingSeconds.Value = settings.InvincibleDuration;
         }
 
         public void Dispose()
@@ -88,6 +112,7 @@ namespace Game.Core
             remainingTimeSeconds.Dispose();
             collectedCoinCount.Dispose();
             totalCoinCount.Dispose();
+            invincibleRemainingSeconds.Dispose();
         }
     }
 }

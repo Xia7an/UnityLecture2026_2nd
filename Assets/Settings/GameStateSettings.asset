@@ -15,4 +15,6 @@ MonoBehaviour:
   maxHp: 100
   timeLimitSeconds: 60
   coinCount: 30
+  specialCoinCount: 3
   damageOnEnemyHit: 10
+  invincibleDuration: 10
