@@ -19,6 +19,13 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        // 時間切れになったらもう動かさない
+        if (GameManager.instance != null && GameManager.instance.timeUp == true)
+        {
+            if (animator != null) animator.SetFloat("Speed", 0f);
+            return;
+        }
+
         var kb = Keyboard.current;
 
         float x = 0f;

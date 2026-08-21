@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,12 +10,18 @@ public class GameManager : MonoBehaviour
     public GameObject coinPrefab;
     public GameObject playerObject;
     public TextMeshProUGUI coinText;
+    public TextMeshProUGUI timerText;
 
     // 取ったコインの枚数。Coin.cs から直接足される
     public int coinCount = 0;
 
     // 出したコインの枚数
     public int CoinNum = 0;
+
+    // タイマー
+    private float keikaJikan = 0f;   // 経過時間
+    public int nokoriByou = 60;      // 残り秒数
+    public bool timeUp = false;      // 時間切れかどうか
 
     void Awake()
     {
@@ -66,6 +73,15 @@ public class GameManager : MonoBehaviour
         {
             coinText.text = "COIN " + coinCount + " / 30";
         }
+
+        // タイマーの初期化
+        keikaJikan = 0f;
+        nokoriByou = 60;
+        timeUp = false;
+        if (timerText != null)
+        {
+            timerText.text = "01:00";
+        }
     }
 
     void Update()
@@ -74,6 +90,37 @@ public class GameManager : MonoBehaviour
         if (coinText != null)
         {
             coinText.text = "COIN " + coinCount + " / 30";
+        }
+
+        // ここからタイマー
+        keikaJikan = keikaJikan + Time.deltaTime;
+        nokoriByou = 60 - (int)keikaJikan;
+        if (nokoriByou < 0)
+        {
+            nokoriByou = 0;
+        }
+        if (nokoriByou <= 0)
+        {
+            timeUp = true;
+        }
+
+        // mm:ss の形にする
+        int m = (int)(nokoriByou / 60);
+        int s = (int)nokoriByou - m * 60;
+        string mm = "" + m;
+        if (m < 10) mm = "0" + m;
+        string ss = "" + s;
+        if (s < 10) ss = "0" + s;
+        if (timerText != null)
+        {
+            timerText.text = mm + ":" + ss;
+        }
+
+        // 時間切れになったら失敗
+        if (timeUp == true && isClear == false)
+        {
+            GameManager.isClear = false;
+            SceneManager.LoadScene("Result");
         }
     }
 }
