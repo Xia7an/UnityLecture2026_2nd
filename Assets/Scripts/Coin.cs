@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 
 public class Coin : MonoBehaviour
 {
+    public bool isSpecial;
     public float rotateSpeed = 90f;
 
     private bool got = false;
@@ -31,6 +32,26 @@ public class Coin : MonoBehaviour
         if (pc != null)
         {
             pc.AddCoin();
+        }
+
+        // スペシャルコインだったら10秒間無敵になる
+        if (isSpecial == true)
+        {
+            GameManager.instance.isMuteki = true;
+            GameManager.instance.mutekiZanri = 10f;
+
+            // 敵にも無敵になったことを教えておく
+            Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+            for (int i = 0; i < enemies.Length; i++)
+            {
+                enemies[i].SetMuteki(true);
+            }
+
+            // ゲージの色も変えておく
+            if (GameManager.instance.hpGauge != null)
+            {
+                GameManager.instance.hpGauge.color = new Color(0.2f, 0.4f, 1f);
+            }
         }
 
         Destroy(gameObject);

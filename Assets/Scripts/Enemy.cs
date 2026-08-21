@@ -10,6 +10,9 @@ public class Enemy : MonoBehaviour
     private Vector3 dir;
     private float timer = 0f;
 
+    // GameManager の無敵フラグのコピー
+    private bool mutekiFlag = false;
+
     void Start()
     {
         cc = GetComponent<CharacterController>();
@@ -55,12 +58,28 @@ public class Enemy : MonoBehaviour
         {
             animator.SetFloat("Speed", v.magnitude);
         }
+
+        // 無敵かどうかを毎フレームもらってくる
+        if (GameManager.instance != null)
+        {
+            mutekiFlag = GameManager.instance.isMuteki;
+        }
+    }
+
+    // Coin.cs から呼ばれる
+    public void SetMuteki(bool b)
+    {
+        mutekiFlag = b;
     }
 
     void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player")) return;
         if (GameManager.instance == null) return;
+
+        // 無敵中はダメージなし
+        if (mutekiFlag == true) return;
+        if (GameManager.instance.isMuteki == true) return;
 
         // ぶつかったら10ダメージ
         GameManager.instance.hp = GameManager.instance.hp - 10;

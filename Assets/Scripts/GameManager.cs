@@ -9,6 +9,7 @@ public class GameManager : MonoBehaviour
     public static bool isClear;
 
     public GameObject coinPrefab;
+    public GameObject specialCoinPrefab;
     public GameObject enemyPrefab;
     public GameObject playerObject;
     public TextMeshProUGUI coinText;
@@ -23,6 +24,10 @@ public class GameManager : MonoBehaviour
 
     // プレイヤーのHP。Enemy.cs から直接減らされる
     public int hp = 100;
+
+    // 無敵まわり
+    public bool isMuteki = false;
+    public float mutekiZanri = 0f;   // 無敵の残り時間
 
     // タイマー
     private float keikaJikan = 0f;   // 経過時間
@@ -44,6 +49,20 @@ public class GameManager : MonoBehaviour
 
         // コインを30個出す
         Vector3[] okiba = new Vector3[30];
+
+        // そのうち3個をスペシャルコインにする
+        bool[] special = new bool[30];
+        int sp = 0;
+        int guard = 0;
+        while (sp < 3 && guard < 100)
+        {
+            guard = guard + 1;
+            int r = Random.Range(0, 30);
+            if (special[r] == true) continue;
+            special[r] = true;
+            sp = sp + 1;
+        }
+
         for (int i = 0; i < 30; i++)
         {
             Vector3 p = new Vector3(0f, 0.5f, 0f);
@@ -67,9 +86,20 @@ public class GameManager : MonoBehaviour
 
             okiba[i] = p;
 
-            if (coinPrefab != null)
+            GameObject prefab = coinPrefab;
+            if (special[i] == true && specialCoinPrefab != null)
             {
-                Instantiate(coinPrefab, p, coinPrefab.transform.rotation);
+                prefab = specialCoinPrefab;
+            }
+
+            if (prefab != null)
+            {
+                GameObject go = Instantiate(prefab, p, prefab.transform.rotation);
+                Coin ko = go.GetComponent<Coin>();
+                if (ko != null && special[i] == true)
+                {
+                    ko.isSpecial = true;
+                }
                 CoinNum = CoinNum + 1;
             }
         }
@@ -92,6 +122,8 @@ public class GameManager : MonoBehaviour
 
         // HPの初期化
         hp = 100;
+        isMuteki = false;
+        mutekiZanri = 0f;
         if (hpGauge != null)
         {
             hpGauge.fillAmount = 1f;
@@ -116,10 +148,35 @@ public class GameManager : MonoBehaviour
             coinText.text = "COIN " + coinCount + " / 30";
         }
 
+        // 無敵の残り時間を減らす
+        if (mutekiZanri > 0f)
+        {
+            mutekiZanri = mutekiZanri - Time.deltaTime;
+            if (mutekiZanri <= 0f)
+            {
+                mutekiZanri = 0f;
+                isMuteki = false;
+            }
+            else
+            {
+                isMuteki = true;
+            }
+        }
+
         // HPゲージ
         if (hpGauge != null)
         {
             hpGauge.fillAmount = hp / 100f;
+
+            // 無敵中は色を変える
+            if (isMuteki == true)
+            {
+                hpGauge.color = new Color(0.2f, 0.4f, 1f);
+            }
+            else
+            {
+                hpGauge.color = Color.green;
+            }
         }
 
         // ここからタイマー
