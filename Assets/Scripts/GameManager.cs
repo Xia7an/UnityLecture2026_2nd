@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -8,15 +9,20 @@ public class GameManager : MonoBehaviour
     public static bool isClear;
 
     public GameObject coinPrefab;
+    public GameObject enemyPrefab;
     public GameObject playerObject;
     public TextMeshProUGUI coinText;
     public TextMeshProUGUI timerText;
+    public Image hpGauge;
 
     // 取ったコインの枚数。Coin.cs から直接足される
     public int coinCount = 0;
 
     // 出したコインの枚数
     public int CoinNum = 0;
+
+    // プレイヤーのHP。Enemy.cs から直接減らされる
+    public int hp = 100;
 
     // タイマー
     private float keikaJikan = 0f;   // 経過時間
@@ -74,6 +80,24 @@ public class GameManager : MonoBehaviour
             coinText.text = "COIN " + coinCount + " / 30";
         }
 
+        // 敵を5体出す
+        for (int i = 0; i < 5; i++)
+        {
+            Vector3 ep = new Vector3(Random.Range(-9f, 9f), 0f, Random.Range(-9f, 9f));
+            if (enemyPrefab != null)
+            {
+                Instantiate(enemyPrefab, ep, Quaternion.identity);
+            }
+        }
+
+        // HPの初期化
+        hp = 100;
+        if (hpGauge != null)
+        {
+            hpGauge.fillAmount = 1f;
+            hpGauge.color = Color.green;
+        }
+
         // タイマーの初期化
         keikaJikan = 0f;
         nokoriByou = 60;
@@ -90,6 +114,12 @@ public class GameManager : MonoBehaviour
         if (coinText != null)
         {
             coinText.text = "COIN " + coinCount + " / 30";
+        }
+
+        // HPゲージ
+        if (hpGauge != null)
+        {
+            hpGauge.fillAmount = hp / 100f;
         }
 
         // ここからタイマー

@@ -7,14 +7,15 @@
 
 | | |
 |---|---|
-| ブランチ | `feat/hell-2` |
+| ブランチ | `feat/hell-3` |
 | 設計 | **地獄（反面教師）** — 処理と状態が分かれていない |
 | 開くシーン | `Assets/Scenes/Title.unity` |
 
 ### このブランチのゲーム要件
 
-- フィールドのランダムな位置に現れる 30 枚のコインを、**1 分以内に**全て集めたらクリア
+- フィールドのランダムな位置に現れる 30 枚のコインを、1 分以内に全て集めたらクリア
 - 集められなかったら失敗
+- **敵（デカい猫）が現れる。自機の HP は初期値 100。敵に衝突したら HP が 10 減る。HP が 0 になったら失敗**
 
 ### コードを追ってみよう
 
@@ -22,12 +23,14 @@
 - `Assets/Scripts/GameManager.cs`
 - `Assets/Scripts/PlayerController.cs`
 - `Assets/Scripts/Coin.cs`
+- `Assets/Scripts/Enemy.cs`
 - `Assets/Scripts/ResultManager.cs`
 
 答えてみてください。
 
-- このゲームは、どこでクリア判定をしていますか？
-- 残り時間はどこで減っていますか？ `timeUp` は誰が `true` にしますか？
+- **いま HP はいくつですか？** それはどの変数を見れば分かりますか？
+- **HP はどこで減っていますか？** 書き換えている箇所を全部挙げられますか？
+- **このゲームは、どういうときに終わりますか？** 要件を見ずに、コードだけで答えられますか？
 
 ## ブランチ一覧
 
@@ -41,8 +44,8 @@
 | ④ ＋ 無敵になるスペシャルコイン 3 枚 | `feat/hell-4` | `feat/pure-4` |
 
 ```sh
-git switch feat/hell-3      # 次の要件へ
-git diff feat/hell-2 feat/hell-3   # 要件が増えたぶんの差分
+git switch feat/hell-4      # 次の要件へ
+git diff feat/hell-3 feat/hell-4   # 要件が増えたぶんの差分
 ```
 
 ## 動かし方
