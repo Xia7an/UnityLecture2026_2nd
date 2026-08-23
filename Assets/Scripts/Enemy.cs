@@ -1,85 +1,82 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class Enemy : MonoBehaviour
+public sealed class Enemy : MonoBehaviour
 {
-    public float speed = 2f;
-    public Animator animator;
+    private const float DirectionChangeInterval = 1.5f;
 
-    private CharacterController cc;
-    private Vector3 dir;
-    private float timer = 0f;
+    [SerializeField] private float speed = 2f;
+    [SerializeField] private Animator animator;
 
-    void Start()
+    private CharacterController characterController;
+    private Vector3 direction;
+    private float directionChangeTimer;
+
+    private void Awake()
     {
-        cc = GetComponent<CharacterController>();
-
-        // 適当な方向を向かせる
-        float ang = Random.Range(0f, 360f);
-        dir = new Vector3(Mathf.Cos(ang * Mathf.Deg2Rad), 0f, Mathf.Sin(ang * Mathf.Deg2Rad));
+        characterController = GetComponent<CharacterController>();
     }
 
-    void Update()
+    private void Start()
     {
-        // 1.5秒たったら向きを変える
-        timer = timer + Time.deltaTime;
-        if (timer > 1.5f)
+        ChooseRandomDirection();
+    }
+
+    private void Update()
+    {
+        directionChangeTimer += Time.deltaTime;
+        if (directionChangeTimer >= DirectionChangeInterval)
         {
-            float ang = Random.Range(0f, 360f);
-            dir = new Vector3(Mathf.Cos(ang * Mathf.Deg2Rad), 0f, Mathf.Sin(ang * Mathf.Deg2Rad));
-            timer = 0f;
+            ChooseRandomDirection();
+            directionChangeTimer = 0f;
         }
 
-        // フィールドの外に出そうだったら跳ね返す
-        Vector3 next = transform.position + dir * speed * Time.deltaTime;
-        if (next.x < -10f || next.x > 10f) dir.x = -dir.x;
-        if (next.z < -10f || next.z > 10f) dir.z = -dir.z;
+        var nextPosition = transform.position + direction * speed * Time.deltaTime;
+        if (nextPosition.x < -10f || nextPosition.x > 10f) direction.x = -direction.x;
+        if (nextPosition.z < -10f || nextPosition.z > 10f) direction.z = -direction.z;
 
-        Vector3 v = dir * speed;
-
-        if (cc != null)
+        var velocity = direction * speed;
+        if (characterController != null)
         {
-            cc.Move(v * Time.deltaTime + new Vector3(0f, -9.8f, 0f) * Time.deltaTime);
+            var gravity = Physics.gravity * Time.deltaTime;
+            characterController.Move(velocity * Time.deltaTime + gravity);
         }
         else
         {
-            transform.position = transform.position + v * Time.deltaTime;
+            transform.position += velocity * Time.deltaTime;
         }
 
-        if (v.sqrMagnitude > 0.0001f)
+        if (velocity.sqrMagnitude > 0.0001f)
         {
-            transform.rotation = Quaternion.LookRotation(v);
+            transform.rotation = Quaternion.LookRotation(velocity);
         }
 
         if (animator != null)
         {
-            animator.SetFloat("Speed", v.magnitude);
+            animator.SetFloat("Speed", velocity.magnitude);
         }
     }
 
-    void OnTriggerEnter(Collider other)
+    private void ChooseRandomDirection()
+    {
+        var angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+        direction = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+    }
+
+    private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player")) return;
-        if (GameManager.instance == null) return;
 
-        // ぶつかったら10ダメージ
-        GameManager.instance.hp = GameManager.instance.hp - 10;
-        if (GameManager.instance.hp < 0)
-        {
-            GameManager.instance.hp = 0;
-        }
+        var gameManager = GameManager.Instance;
+        if (gameManager == null) return;
 
-        // ゲージも更新する
-        if (GameManager.instance.hpGauge != null)
-        {
-            GameManager.instance.hpGauge.fillAmount = GameManager.instance.hp / 100f;
-        }
+        // HP は Enemy から直接書き換えるが、減算と下限処理は 1 回の代入で行う。
+        gameManager.hp = Mathf.Max(0, gameManager.hp - GameManager.DamagePerHit);
+        gameManager.RefreshHpDisplay();
 
-        // HPが0になったらゲームオーバー
-        if (GameManager.instance.hp <= 0)
-        {
-            GameManager.isClear = false;
-            SceneManager.LoadScene("Result");
-        }
+        if (gameManager.hp > 0) return;
+
+        GameManager.IsClear = false;
+        SceneManager.LoadScene("Result");
     }
 }
