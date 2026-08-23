@@ -625,7 +625,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   coinPrefab: {fileID: 8006535840763153500, guid: 591ff0211c678447faeeaa1dcd46fbd5, type: 3}
-  playerObject: {fileID: 0}
   coinText: {fileID: 608203437}
 --- !u!4 &873055661
 Transform:
