@@ -1,58 +1,45 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerController : MonoBehaviour
+public sealed class PlayerController : MonoBehaviour
 {
-    public float walkSpeed = 3f;
-    public float dashSpeed = 6f;
-    public Animator animator;
+    [SerializeField] private float walkSpeed = 3f;
+    [SerializeField] private float dashSpeed = 6f;
+    [SerializeField] private Animator animator;
 
-    private CharacterController cc;
+    private CharacterController characterController;
 
-    // GameManager が持っているのと同じコインの枚数。表示以外にも使うのでこっちにも持っておく
-    private int myCoinCount = 0;
-
-    void Start()
+    private void Awake()
     {
-        cc = GetComponent<CharacterController>();
+        characterController = GetComponent<CharacterController>();
     }
 
-    void Update()
+    private void Update()
     {
-        // 時間切れになったらもう動かさない
-        if (GameManager.instance != null && GameManager.instance.timeUp == true)
-        {
-            if (animator != null) animator.SetFloat("Speed", 0f);
-            return;
-        }
-
-        var kb = Keyboard.current;
+        var keyboard = Keyboard.current;
 
         float x = 0f;
         float z = 0f;
-        if (kb != null)
+        if (keyboard != null)
         {
-            if (kb.wKey.isPressed) z = z + 1f;
-            if (kb.sKey.isPressed) z = z - 1f;
-            if (kb.dKey.isPressed) x = x + 1f;
-            if (kb.aKey.isPressed) x = x - 1f;
+            if (keyboard.wKey.isPressed) z += 1f;
+            if (keyboard.sKey.isPressed) z -= 1f;
+            if (keyboard.dKey.isPressed) x += 1f;
+            if (keyboard.aKey.isPressed) x -= 1f;
         }
 
-        Vector3 dir = new Vector3(x, 0f, z);
-        if (dir.sqrMagnitude > 1f) dir = dir.normalized;
+        var direction = new Vector3(x, 0f, z);
+        if (direction.sqrMagnitude > 1f) direction.Normalize();
 
         // シフトでダッシュ
-        float speed = walkSpeed;
-        if (kb != null && kb.leftShiftKey.isPressed)
-        {
-            speed = dashSpeed;
-        }
+        var isDashing = keyboard != null && keyboard.leftShiftKey.isPressed;
+        var speed = isDashing ? dashSpeed : walkSpeed;
+        var velocity = direction * speed;
 
-        Vector3 velocity = dir * speed;
-
-        if (cc != null)
+        if (characterController != null)
         {
-            cc.Move(velocity * Time.deltaTime + new Vector3(0f, -9.8f, 0f) * Time.deltaTime);
+            var gravity = Physics.gravity * Time.deltaTime;
+            characterController.Move(velocity * Time.deltaTime + gravity);
         }
 
         if (velocity.sqrMagnitude > 0.0001f)
@@ -64,17 +51,5 @@ public class PlayerController : MonoBehaviour
         {
             animator.SetFloat("Speed", velocity.magnitude);
         }
-
-        // GameManager 側の枚数をこっちにも写しておく
-        if (GameManager.instance != null)
-        {
-            myCoinCount = GameManager.instance.coinCount;
-        }
-    }
-
-    // Coin.cs から呼ばれる
-    public void AddCoin()
-    {
-        myCoinCount = myCoinCount + 1;
     }
 }
