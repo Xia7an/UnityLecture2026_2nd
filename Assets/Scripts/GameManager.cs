@@ -3,154 +3,141 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class GameManager : MonoBehaviour
+public sealed class GameManager : MonoBehaviour
 {
-    public static GameManager instance;
-    public static bool isClear;
+    public const int TotalCoinCount = 30;
+    public const int TimeLimitSeconds = 60;
+    public const int MaxHp = 100;
+    public const int DamagePerHit = 10;
+    private const int EnemyCount = 5;
 
-    public GameObject coinPrefab;
-    public GameObject enemyPrefab;
-    public GameObject playerObject;
-    public TextMeshProUGUI coinText;
-    public TextMeshProUGUI timerText;
-    public Image hpGauge;
+    public static GameManager Instance { get; private set; }
+    public static bool IsClear;
 
-    // 取ったコインの枚数。Coin.cs から直接足される
-    public int coinCount = 0;
+    [SerializeField] private GameObject coinPrefab;
+    [SerializeField] private GameObject enemyPrefab;
+    [SerializeField] private TextMeshProUGUI coinText;
+    [SerializeField] private TextMeshProUGUI timerText;
+    [SerializeField] private Image hpGauge;
 
-    // 出したコインの枚数
-    public int CoinNum = 0;
+    // Coin と Enemy から直接更新される。状態の持ち主を分けていない素朴な実装。
+    public int collectedCoinCount;
+    public int remainingTimeSeconds = TimeLimitSeconds;
+    public int hp = MaxHp;
 
-    // プレイヤーのHP。Enemy.cs から直接減らされる
-    public int hp = 100;
+    private float elapsedSeconds;
 
-    // タイマー
-    private float keikaJikan = 0f;   // 経過時間
-    public int nokoriByou = 60;      // 残り秒数
-    public bool timeUp = false;      // 時間切れかどうか
-
-    void Awake()
+    private void Awake()
     {
-        instance = this;
-        isClear = false;
+        Instance = this;
+        IsClear = false;
     }
 
-    void Start()
+    private void Start()
     {
-        if (playerObject == null)
+        SpawnCoins();
+        SpawnEnemies();
+
+        RefreshCoinDisplay();
+        RefreshTimerDisplay();
+        RefreshHpDisplay();
+    }
+
+    private void Update()
+    {
+        elapsedSeconds += Time.deltaTime;
+
+        var nextRemainingSeconds = Mathf.Max(
+            0,
+            Mathf.CeilToInt(TimeLimitSeconds - elapsedSeconds));
+
+        if (nextRemainingSeconds != remainingTimeSeconds)
         {
-            playerObject = GameObject.Find("Player");
+            remainingTimeSeconds = nextRemainingSeconds;
+            RefreshTimerDisplay();
         }
 
-        // コインを30個出す
-        Vector3[] okiba = new Vector3[30];
-        for (int i = 0; i < 30; i++)
+        if (remainingTimeSeconds > 0 || IsClear) return;
+
+        IsClear = false;
+        enabled = false;
+        SceneManager.LoadScene("Result");
+    }
+
+    private void SpawnCoins()
+    {
+        var positions = new Vector3[TotalCoinCount];
+
+        for (var i = 0; i < TotalCoinCount; i++)
         {
-            Vector3 p = new Vector3(0f, 0.5f, 0f);
-
-            // 近すぎたら置き直す。50回やって駄目だったらあきらめる
-            for (int t = 0; t < 50; t++)
-            {
-                p = new Vector3(Random.Range(-9f, 9f), 0.5f, Random.Range(-9f, 9f));
-
-                bool ok = true;
-                for (int j = 0; j < i; j++)
-                {
-                    if (Vector3.Distance(okiba[j], p) < 1.5f)
-                    {
-                        ok = false;
-                        break;
-                    }
-                }
-                if (ok) break;
-            }
-
-            okiba[i] = p;
+            var position = FindCoinPosition(positions, i);
+            positions[i] = position;
 
             if (coinPrefab != null)
             {
-                Instantiate(coinPrefab, p, coinPrefab.transform.rotation);
-                CoinNum = CoinNum + 1;
+                Instantiate(coinPrefab, position, coinPrefab.transform.rotation);
             }
-        }
-
-        coinCount = 0;
-        if (coinText != null)
-        {
-            coinText.text = "COIN " + coinCount + " / 30";
-        }
-
-        // 敵を5体出す
-        for (int i = 0; i < 5; i++)
-        {
-            Vector3 ep = new Vector3(Random.Range(-9f, 9f), 0f, Random.Range(-9f, 9f));
-            if (enemyPrefab != null)
-            {
-                Instantiate(enemyPrefab, ep, Quaternion.identity);
-            }
-        }
-
-        // HPの初期化
-        hp = 100;
-        if (hpGauge != null)
-        {
-            hpGauge.fillAmount = 1f;
-            hpGauge.color = Color.green;
-        }
-
-        // タイマーの初期化
-        keikaJikan = 0f;
-        nokoriByou = 60;
-        timeUp = false;
-        if (timerText != null)
-        {
-            timerText.text = "01:00";
         }
     }
 
-    void Update()
+    private static Vector3 FindCoinPosition(Vector3[] positions, int placedCount)
     {
-        // 念のため毎フレーム表示を更新しておく
+        var position = new Vector3(0f, 0.5f, 0f);
+
+        // 近すぎたら置き直す。50 回で見つからなければ最後の候補を使う。
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            position = new Vector3(Random.Range(-9f, 9f), 0.5f, Random.Range(-9f, 9f));
+
+            var isFarEnough = true;
+            for (var i = 0; i < placedCount; i++)
+            {
+                if (Vector3.Distance(positions[i], position) >= 1.5f) continue;
+
+                isFarEnough = false;
+                break;
+            }
+
+            if (isFarEnough) break;
+        }
+
+        return position;
+    }
+
+    private void SpawnEnemies()
+    {
+        if (enemyPrefab == null) return;
+
+        for (var i = 0; i < EnemyCount; i++)
+        {
+            var position = new Vector3(Random.Range(-9f, 9f), 0f, Random.Range(-9f, 9f));
+            Instantiate(enemyPrefab, position, Quaternion.identity);
+        }
+    }
+
+    public void RefreshCoinDisplay()
+    {
         if (coinText != null)
         {
-            coinText.text = "COIN " + coinCount + " / 30";
+            coinText.text = $"COIN {collectedCoinCount} / {TotalCoinCount}";
         }
+    }
 
-        // HPゲージ
+    public void RefreshHpDisplay()
+    {
         if (hpGauge != null)
         {
-            hpGauge.fillAmount = hp / 100f;
+            hpGauge.fillAmount = hp / (float)MaxHp;
+            hpGauge.color = Color.green;
         }
+    }
 
-        // ここからタイマー
-        keikaJikan = keikaJikan + Time.deltaTime;
-        nokoriByou = 60 - (int)keikaJikan;
-        if (nokoriByou < 0)
-        {
-            nokoriByou = 0;
-        }
-        if (nokoriByou <= 0)
-        {
-            timeUp = true;
-        }
+    private void RefreshTimerDisplay()
+    {
+        if (timerText == null) return;
 
-        // mm:ss の形にする
-        int m = (int)(nokoriByou / 60);
-        int s = (int)nokoriByou - m * 60;
-        string mm = "" + m;
-        if (m < 10) mm = "0" + m;
-        string ss = "" + s;
-        if (s < 10) ss = "0" + s;
-        if (timerText != null)
-        {
-            timerText.text = mm + ":" + ss;
-        }
-
-        // 時間切れになったら失敗
-        if (timeUp == true && isClear == false)
-        {
-            GameManager.isClear = false;
-            SceneManager.LoadScene("Result");
-        }
+        var minutes = remainingTimeSeconds / 60;
+        var seconds = remainingTimeSeconds % 60;
+        timerText.text = $"{minutes:00}:{seconds:00}";
     }
 }
