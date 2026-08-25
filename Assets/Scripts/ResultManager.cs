@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
-public class ResultManager : MonoBehaviour
+public sealed class ResultManager : MonoBehaviour
 {
     public TextMeshProUGUI resultText;
 
@@ -11,7 +11,7 @@ public class ResultManager : MonoBehaviour
     {
         if (resultText != null)
         {
-            if (GameManager.isClear == true)
+            if (GameManager.IsClear)
             {
                 resultText.text = "GAME CLEAR";
                 resultText.color = new Color(1f, 0.8f, 0.2f);
