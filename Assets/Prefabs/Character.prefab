@@ -12,6 +12,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Character
       objectReference: {fileID: 0}
+    - target: {fileID: 100264, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
+      propertyPath: m_TagString
+      value: Player
+      objectReference: {fileID: 0}
     - target: {fileID: 400264, guid: 13a16f60da4245c45a865b2136ba272c, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1.00208
@@ -117,8 +121,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 3446686581037742559}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d30cd27d0bfb407682eccf67f6c97cf, type: 3}
+  m_Script: {fileID: 11500000, guid: d5b02f8e7c4a53699be1d6f2a08c4397, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Game.Play.CharacterView
-  characterController: {fileID: 5608084359173463194}
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  walkSpeed: 3
+  dashSpeed: 6
   animator: {fileID: 3446686581028375319}
